@@ -1,1 +1,0 @@
-This mod implements a new block which allows you to create any which colour you desire! The variety is nearly endless, or it will be when it's complete!
