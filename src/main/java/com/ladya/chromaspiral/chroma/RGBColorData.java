@@ -8,6 +8,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.saveddata.SavedData;
 
@@ -65,4 +66,31 @@ public class RGBColorData extends SavedData {
 		}
 		return serverLevel.getDataStorage().computeIfAbsent(RGBColorData::load, RGBColorData::new, "rgb_color_data");
 	}
+	
+	public static RGBColorData blend(ItemStack[] items) {
+        // Create some dummy blending logic for now:
+        int r = 0, g = 0, b = 0;
+        int count = 0;
+
+        for (ItemStack item : items) {
+            if (!item.isEmpty()) {
+                // Placeholder: count each item as white for now
+                r += 255;
+                g += 255;
+                b += 255;
+                count++;
+            }
+        }
+
+        if (count == 0) return null;
+
+        // average the values
+        r /= count;
+        g /= count;
+        b /= count;
+
+        RGBColorData data = new RGBColorData();
+        data.setColor(BlockPos.ZERO, (r << 16) | (g << 8) | b); // Use dummy pos for now
+        return data;
+    }
 }

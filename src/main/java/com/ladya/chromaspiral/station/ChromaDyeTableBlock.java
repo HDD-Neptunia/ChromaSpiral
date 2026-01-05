@@ -4,11 +4,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.MenuProvider;
+
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.item.context.BlockPlaceContext;
-import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
@@ -18,21 +17,17 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraft.world.phys.shapes.Shapes;
-import net.minecraft.world.phys.shapes.BooleanOp;
+
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.SoundType;
 
 import javax.annotation.Nullable;
 
-import com.ladya.chromaspiral.ModBlocks;
-import com.ladya.chromaspiral.station.ChromaDyeTableBlockEntity;
 import com.ladya.chromaspiral.ModBlockEntities;
-import com.ladya.chromaspiral.ModMenuTypes;
+
 import net.minecraftforge.network.NetworkHooks;
 
 public class ChromaDyeTableBlock extends Block implements EntityBlock {
@@ -40,6 +35,7 @@ public class ChromaDyeTableBlock extends Block implements EntityBlock {
     public ChromaDyeTableBlock() {
         super(BlockBehaviour.Properties.of()
                 .strength(2.0f)
+                .sound(SoundType.METAL)
                 .noOcclusion()
                 .lightLevel(state -> state.getValue(LIT) ? 7 : 0));
         this.registerDefaultState(this.stateDefinition.any().setValue(LIT, false));
@@ -58,15 +54,51 @@ public class ChromaDyeTableBlock extends Block implements EntityBlock {
     }
 
     @Override
-    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player,
-                                  InteractionHand hand, BlockHitResult result) {
-        if (!level.isClientSide) {
-            BlockEntity blockEntity = level.getBlockEntity(pos);
-            if (blockEntity instanceof ChromaDyeTableBlockEntity tableEntity) {
-                NetworkHooks.openScreen((ServerPlayer) player, tableEntity, pos);
-            }
+    public InteractionResult use(
+            BlockState state,
+            Level level,
+            BlockPos pos,
+            Player player,
+            InteractionHand hand,
+            BlockHitResult hit
+    ) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (!(be instanceof ChromaDyeTableBlockEntity table)) {
+            return InteractionResult.PASS;
         }
-        return InteractionResult.SUCCESS;
+
+        ItemStack stack = player.getItemInHand(hand);
+
+        // 1️⃣ Handle water bucket FIRST
+        if (stack.is(Items.WATER_BUCKET)) {
+
+        	if (table.getWaterLevel() >= ChromaDyeTableBlockEntity.MAX_WATER) {
+                return InteractionResult.sidedSuccess(level.isClientSide);
+            }
+
+            if (!level.isClientSide) {
+                    table.setWaterLevel(ChromaDyeTableBlockEntity.MAX_WATER);
+                    table.setWaterUses(0);
+                    table.setChanged();
+                    
+                    if (!player.isCreative()) {
+                        player.setItemInHand(hand, new ItemStack(Items.BUCKET));
+                    }
+
+                    level.sendBlockUpdated(pos, state, state, 3);
+                
+            }
+
+            // IMPORTANT: consume interaction on BOTH sides
+            return InteractionResult.sidedSuccess(level.isClientSide);
+        }
+
+        // 2️⃣ Otherwise open GUI
+        if (!level.isClientSide) {
+            NetworkHooks.openScreen((ServerPlayer) player, table, pos);
+        }
+
+        return InteractionResult.sidedSuccess(level.isClientSide);
     }
 
     @Nullable

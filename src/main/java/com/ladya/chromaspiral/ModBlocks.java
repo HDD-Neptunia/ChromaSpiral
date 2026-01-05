@@ -40,7 +40,7 @@ public class ModBlocks {
             BLOCKS.register("rgb_wool", RGBWool::new);
     
     public static final RegistryObject<Block> CHROMA_DYE_TABLE_BLOCK =
-            BLOCKS.register("chroma_dye_table_block", ChromaDyeTableBlock::new);
+            BLOCKS.register("chroma_dye_table", ChromaDyeTableBlock::new);
 
     
     
@@ -60,6 +60,7 @@ public class ModBlocks {
                             .icon(() -> new ItemStack(RGB_WOOL_ITEM.get())) // ← SUPPLIER ✔
                             .displayItems((params, output) -> {
                                 output.accept(RGB_WOOL_ITEM.get());
+                                output.accept(CHROMA_DYE_TABLE_BLOCK.get());
                             })
                             .build()
             );

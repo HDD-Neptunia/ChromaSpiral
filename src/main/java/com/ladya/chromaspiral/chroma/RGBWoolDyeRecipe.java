@@ -1,35 +1,37 @@
 package com.ladya.chromaspiral.chroma;
 
+import com.google.gson.JsonObject;
 import com.ladya.chromaspiral.ModBlocks;
+import com.ladya.chromaspiral.ModRecipeTypes;
 import com.ladya.chromaspiral.blocks.ModRecipeSerializers;
 
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.world.SimpleContainer;
+
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.crafting.CraftingBookCategory;
-import net.minecraft.world.item.crafting.CustomRecipe;
+import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
 
 
 
-public class RGBWoolDyeRecipe extends CustomRecipe {
+public class RGBWoolDyeRecipe implements Recipe<SimpleContainer> {
 
-    public RGBWoolDyeRecipe(ResourceLocation id) {
-        super(id, CraftingBookCategory.MISC);
-    }
-    
-    private static final ThreadLocal<Integer> WOOL_USED = new ThreadLocal<>();
+	private final ResourceLocation id;
 
-    private static final ThreadLocal<Integer> LAST_WOOL_USED = new ThreadLocal<>();
+	public RGBWoolDyeRecipe(ResourceLocation id) {
+	    this.id = id;
+	}
+
 
 
     @Override
-    public boolean matches(CraftingContainer container, Level level) {
+    public boolean matches(SimpleContainer container, Level level) {
         boolean foundWool = false;
         boolean foundDye = false;
 
@@ -51,17 +53,23 @@ public class RGBWoolDyeRecipe extends CustomRecipe {
 
 
     @Override
-    public ItemStack assemble(CraftingContainer container, RegistryAccess access) {
+    public ItemStack assemble(SimpleContainer container, RegistryAccess access) {
         int r = 0, g = 0, b = 0, dyeCount = 0;
         int woolCount = 0;
+        ItemStack inputWool = ItemStack.EMPTY;
+
 
         for (int i = 0; i < container.getContainerSize(); i++) {
             ItemStack stack = container.getItem(i);
             if (stack.isEmpty()) continue;
 
             if (stack.is(ModBlocks.RGB_WOOL_ITEM.get())) {
+            	if (inputWool.isEmpty()) {
+            		inputWool = stack;
+            	}
                 woolCount += stack.getCount();
-            } else if (stack.getItem() instanceof DyeItem dye) {
+            }
+            else if (stack.getItem() instanceof DyeItem dye) {
                 float[] c = dye.getDyeColor().getTextureDiffuseColors();
                 r += (int)(c[0] * 255);
                 g += (int)(c[1] * 255);
@@ -78,19 +86,15 @@ public class RGBWoolDyeRecipe extends CustomRecipe {
 
         int color = (r << 16) | (g << 8) | b;
 
-        int woolToUse = Math.min(woolCount, 64);
-        WOOL_USED.set(woolToUse); // 🧠 Pass it to getRemainingItems
+        ItemStack preview = inputWool.copy();
+        preview.getOrCreateTag().putInt("Color", color);
+        preview.setCount(inputWool.getCount());
 
-        ItemStack result = new ItemStack(ModBlocks.RGB_WOOL_ITEM.get(), woolToUse);
-        result.getOrCreateTag().putInt("Color", color);
-        return result;
+        preview.getOrCreateTag().putInt("Color", color);
+        return preview;
     }
 
 
-
-
-
-    
     @Override
     public ItemStack getResultItem(RegistryAccess access) {
         return new ItemStack(ModBlocks.RGB_WOOL_ITEM.get());
@@ -107,7 +111,7 @@ public class RGBWoolDyeRecipe extends CustomRecipe {
     }
 
     @Override
-    public NonNullList<ItemStack> getRemainingItems(CraftingContainer inv) {
+    public NonNullList<ItemStack> getRemainingItems(SimpleContainer inv) {
         NonNullList<ItemStack> remaining = NonNullList.withSize(inv.getContainerSize(), ItemStack.EMPTY);
         boolean dyeUsed = false;
 
@@ -142,14 +146,39 @@ public class RGBWoolDyeRecipe extends CustomRecipe {
         return remaining;
     }
 
-
-
-
-
-
     @Override
     public RecipeSerializer<?> getSerializer() {
         return ModRecipeSerializers.RGB_WOOL_DYE.get();
     }
+    
+    @Override
+    public RecipeType<?> getType() {
+        return ModRecipeTypes.RGB_WOOL_DYE_RECIPE_TYPE.get();
+    }
+
+
+	@Override
+	public ResourceLocation getId() {
+		return this.id;
+	}
+	
+	public static class Serializer implements RecipeSerializer<RGBWoolDyeRecipe> {
+
+	    @Override
+	    public RGBWoolDyeRecipe fromJson(ResourceLocation id, JsonObject json) {
+	        return new RGBWoolDyeRecipe(id);
+	    }
+
+	    @Override
+	    public RGBWoolDyeRecipe fromNetwork(ResourceLocation id, FriendlyByteBuf buf) {
+	        return new RGBWoolDyeRecipe(id);
+	    }
+
+	    @Override
+	    public void toNetwork(FriendlyByteBuf buf, RGBWoolDyeRecipe recipe) {
+	        // no data to sync
+	    }
+	}
+
 }
 

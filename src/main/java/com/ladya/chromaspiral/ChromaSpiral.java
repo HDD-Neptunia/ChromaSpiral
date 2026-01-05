@@ -8,8 +8,12 @@ import com.ladya.chromaspiral.blocks.ModRecipeSerializers;
 import com.ladya.chromaspiral.chroma.RGBBlockColors;
 import com.ladya.chromaspiral.chroma.RGBItemColors;
 import com.ladya.chromaspiral.networking.RGBNetwork;
+import com.ladya.chromaspiral.station.ChromaDyeTableRenderer;
+import com.ladya.chromaspiral.station.ChromaDyeTableScreen;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.CreativeModeTab;
 
@@ -61,7 +65,8 @@ public class ChromaSpiral {
         ModBlocks.register(modEventBus);  // Your custom block registration class
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModRecipeSerializers.register(modEventBus); // Your recipe serializers
-
+        ModRecipeTypes.RECIPE_TYPES.register(modEventBus);
+        
         MinecraftForge.EVENT_BUS.register(this);
 
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, Config.SPEC);
@@ -87,6 +92,7 @@ public class ChromaSpiral {
     public static class ClientModEvents {
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
+        	MenuScreens.register(ModMenuTypes.CHROMA_DYE_TABLE_MENU.get(), ChromaDyeTableScreen::new);
             LOGGER.info("HELLO FROM CLIENT SETUP");
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
 
@@ -94,6 +100,11 @@ public class ChromaSpiral {
             event.enqueueWork(() -> {
             	RGBItemColors.register(Minecraft.getInstance().getItemColors());
                 RGBBlockColors.registerBlockColors(Minecraft.getInstance().getBlockColors());
+                BlockEntityRenderers.register(
+                        ModBlockEntities.CHROMA_DYE_TABLE.get(),
+                        ChromaDyeTableRenderer::new
+                    );
+               
             });
         }
     }
