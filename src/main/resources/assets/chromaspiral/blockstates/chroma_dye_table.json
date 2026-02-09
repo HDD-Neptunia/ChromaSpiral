@@ -1,7 +1,0 @@
-{
-  "variants": {
-    "lit=false": { "model": "chromaspiral:block/chroma_dye_table" },
-    "lit=true":  { "model": "chromaspiral:block/chroma_dye_table" }
-  }
-}
-
